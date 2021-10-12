@@ -359,7 +359,7 @@ let decideY ... (state : Fold.State) : Decision * Events list = ...
   `module Fold` to use `initial` and `fold`)
 
 ```fsharp
-type Service internal (resolve : Id -> Equinox.Decider<Events.Event, Fold.State) = ...`
+type Service internal (resolve : Id -> Equinox.Decider<Events.Event, Fold.State) = ...
 
     member __.Execute(id, command) : Async<unit> =
         let decider = resolve id
@@ -505,8 +505,8 @@ the _tip_):
 
 When running a decision process, we have the following stages:
 
-1. establish a known `'state` (
-   [as at](https://www.infoq.com/news/2018/02/retroactive-future-event-sourced)
+1. establish a known `'state`
+   ([as at](https://www.infoq.com/news/2018/02/retroactive-future-event-sourced)
    a given Position in the stream of Events)
 2. present the _request/command_ and the `state` to the `interpret` function in
    order to determine appropriate _events_ (can be many, or none) that
@@ -1407,7 +1407,7 @@ unavoidable if one is to provide a system that can work in the real world.
 
 This section outlines key concerns that the Equinox
 [Programming Model](#programming-model) is specifically taking a view on, and
-those that it is going to particular ends to leave open.
+those particular ends that it is going to leave open.
 
 ## Concerns leading to need for a programming model
 
@@ -1487,7 +1487,7 @@ ability to mutate easily, the potential to integrate rolling snapshots into
 core storage is clear. Providing ways to cache and snapshot matter a lot on
 CosmosDB, as lowest-common-denominator queries loading lots of events cost in
 performance and cash. The specifics of how you use the changefeed matters more
-than one might thing from the CosmosDB high level docs.
+than one might think from the CosmosDB high level docs.
 
 Overview: CosmosDB has been in production for >5 years and is a mature Document
 database. The initial DocumentDb offering is at this point a mere projected
@@ -1556,7 +1556,7 @@ for how events and snapshots should be encoded and/or stored:
 
 It can be useful to consider keeping snapshots in the auxiliary collection
 employed by the changefeed in order to optimize the interrelated concerns of
-not reading data redundantly, and not feeding back into the oneself (although
+not reading data redundantly, and not feeding back into oneself (although
 having separate roundtrips obviously has implications).
 
 <a name="cosmos-storage-model"></a>
@@ -1621,7 +1621,7 @@ basic elements
   domain as understood by domain experts - see [Event
   Storming](https://en.wikipedia.org/wiki/Event_storming). Examples: _The
   customer favorited the item_, _the customer add SKU Y to their saved for
-  later list_, _A charge of $200 was submitted successfully with transaction id
+  later list_, _a charge of $200 was submitted successfully with transaction id
   X_.
 
 - _State_ - derived representations established from Events. A given set of
@@ -1872,7 +1872,7 @@ Access Strategies only affect performance; you should still be able to infer
 the state of the aggregate based on the `fold` of all the `events` ever written
 on top of an `initial` state
 
-NOTE: its not important to select a strategy until you've actually actually
+NOTE: it's not important to select a strategy until you've actually actually
 modelled your aggregate, see [what if I change my access
 strategy](#changing-access-strategy)
 
@@ -1888,7 +1888,7 @@ below the table](#access-strategy-glossary) for definition of terms)
   for most typical Event Stores, the mechanism is based on
   [Optimistic Concurrency Control](https://en.wikipedia.org/wiki/Optimistic_concurrency_control).
   _There's no holding of a lock involved - it's based on conveying your
-  premise alongside with the proposed change_; In terms of what we are
+  premise alongside with the proposed change_. In terms of what we are
   doing, you observe a `state`, propose `events`, and the store is
   responsible for applying the change, or rejecting it if the `state` turns
   out to longer be the case when you get around to `sync`ing the change.
@@ -1915,8 +1915,8 @@ below the table](#access-strategy-glossary) for definition of terms)
   on primary key constraint to prevent two writers writing conflicting events
   to the same stream.
 
- - A secondary benefit of not basing consistency control on a primary key
-   constraint or equivalent, is that we no longer having to insert an Event
+ - A secondary benefit of not basing concurrency control on a primary key
+   constraint or equivalent is that we no longer have to insert an Event
    every time we are updating something. (This fact is crucial for the
    `RollingState` and `Custom` strategies).
 
@@ -1929,7 +1929,7 @@ below the table](#access-strategy-glossary) for definition of terms)
   highest).
 
 - The `unfolds` maintained in `Tip` have the bodies (the `d` and `m` fields) 1)
-  deflated 2) base64 encoded (as everyone is reading the Tip, its worthwhile
+  deflated 2) base64 encoded (as everyone is reading the Tip, it's worthwhile
   having the writer take on the burden of compressing, with the payback being
   that write amplification effects are reduced by readers paying less RUs to
   read them). The snapshots can be inspected securely via the `eqx` tool's
@@ -2003,7 +2003,7 @@ below the table](#access-strategy-glossary) for definition of terms)
   the starting point from which we'll build a `state`.
   - Must yield `true` for relevant Snapshots or Reset Events.
 - `initial`: The (Application-defined) _state_ value all loaded events `fold`
-  into, if an `isOrigin` event is not encountered while walking back through th
+  into, if an `isOrigin` event is not encountered while walking back through the
   `unfolds` and Events and instead hit the start of the stream.
 - Snapshot: a single serializable representation of the `state'`
   - Facilitates optimal retrieval patterns when a stream contains a significant
@@ -2125,7 +2125,7 @@ With regard to such needs, here are some store-specific considerations:
   - the more nodes you have, the more TCP connections and other related fixed resources each client instance requires
   - the RU/s allocated to your container can only be spread _equally_ across all nodes. Thus, if you have 100GB spread over 5 nodes and allocate 10,000 RU/s to the Container, each node gets 2,000 RU/s and callers get 429s if there happen to be more than that incurred for that given node in that second (with significant latency impact as all such rate-limited clients need to back off for >= 1s for each rate-limited attempt).
   - the cost of over-provisioning to ensure appropriate capacity for spikes in load and/or to handle hotspots (where one node happens to host a stream that's accessed disproportionately heavily relative to data on other nodes) is multiplied by the number of nodes. Example: if you have a single node with 5GB of data with 2,000 RU/s allocated and want to double the peak capacity, you simply assign it 4,000 RU/s; if you have 100GB over 5 nodes, you need to double your 5x2,000 to 5x4,000 to achieve the same effect
-  - there are significant jumps in cost for writes based on the [indexing cost](https://docs.microsoft.com/en-us/azure/cosmos-db/index-policy) as the number of items in a logical partition increases (empirically derived data; subject to change: for instance inserts of a a minimal (<100 bytes) event that initially costs ~20RU becomes > 40RU with 128 items, > 50RU with 1600 items, >60 at 2800 items and >110RU at 4900 items as snapshots or event sizes hit certain thresholds). 
+  - there are significant jumps in cost for writes based on the [indexing cost](https://docs.microsoft.com/en-us/azure/cosmos-db/index-policy) as the number of items in a logical partition increases (empirically derived data; subject to change: for instance inserts of a minimal (<100 bytes) event that initially costs ~20RU becomes > 40RU with 128 items, > 50RU with 1600 items, >60 at 2800 items and >110RU at 4900 items as snapshots or event sizes hit certain thresholds).
 
 There are myriad approaches to resolving these forces. Let's examine the trade-offs of some relevant ones...
 
@@ -2202,7 +2202,7 @@ An archiver tails a monitored store and bears the following responsibilities:
 
 The pruner cyclically (i.e., when it reaches the end, it loops back to the start) walks the secondary store:
 - visiting each stream, identifying the current write position in the secondary
-- uses that as input into a decision as to whether / how many events can be trimmed from the primary (deletion does not need to take place right away - Equinox will deal with events spread over a Primary/Secondary pair of Containers via the [Fallback mechanism](https://github.com/jet/equinox/pull/247)
+- uses that as input into a decision as to whether / how many events can be trimmed from the primary (deletion does not need to take place right away - Equinox will deal with events spread over a Primary/Secondary pair of Containers via the [Fallback mechanism](https://github.com/jet/equinox/pull/247))
 - (for `Equinox.CosmosStore`) can optimize the packing of the events (e.g. if the most recent 4 events have arrived as 2 batches, the pruner can merge the two batches to minimize storage and index size). When writing to a primary collection, batches are never mutated for packing purposes both due to write costs and read amplification.
 - (for `Equinox.CosmosStore`) can opt to delete from the primary if one or more full Batches have been copied to the secondary (note the unit of deletion is a Batch - mutating a Batch in order to remove an event would trigger a reordering of the document's position in the logical partition)
 
